@@ -155,10 +155,11 @@ TITLE RAPIDROLL (SIMPLIFIED .EXE )
   ERROR5_STR       DB 'Error writing in file.$'
   ERROR6_STR       DB 'Record not written properly.$'
 
-  NUM              DW ?
+  NUM               DW ?
   HIGHEST_SCORE_NUM DB ?
-  VAR_ONES DB ?
-  VAL DB ?
+  VAR_ONES          DB ?
+  VAL               DB ?
+  TEN               DB ?
 ;-------------------------------------------------------------------------------------------------------
 .CODE
   MAIN PROC FAR
@@ -168,6 +169,7 @@ TITLE RAPIDROLL (SIMPLIFIED .EXE )
 
         MOV AL, 1
         MOV FLASH, AL
+
         CALL READ_FILE
         CALL TITLE_SCREEN
   MAIN ENDP
@@ -300,7 +302,7 @@ TITLE RAPIDROLL (SIMPLIFIED .EXE )
         INT 21H
 
         MOV   DL, 00H                                   ;column start
-        MOV   DH, 12H                                     ;row start
+        MOV   DH, 12H                                   ;row start
         CALL  SET_CURSOR
 
         MOV AH, 09H
@@ -324,23 +326,26 @@ TITLE RAPIDROLL (SIMPLIFIED .EXE )
         CALL GET_KEY
         CALL COMPARE
 
+        CALL CONVERT
+
         MOV BL, HIGHEST_SCORE_NUM
         CMP FINAL_SCORE, BL
-        JLE CONTINUE
-        JMP RESET_HIGHEST_SCORE
-        RESET_HIGHEST_SCORE:
+        JL CONTINUE
 
-        XOR AX, AX
-        MOV AL, FINAL_SCORE
-        ADC AH, 0
-        MOV VAL, AX 
-        MOV AX, VAL 
-        CALL DISPLAY_NUM2
+        JMP RESET_HIGHEST_SCORE
+        
+        RESET_HIGHEST_SCORE:
+          XOR AX, AX
+          MOV AL, FINAL_SCORE
+          ADC AH, 0
+          MOV VAL, AL 
+          MOV AL, VAL 
           
+        CALL DISPLAY_NUM2
         CALL WRITE_FILE
-        CALL READ_FILE
 
         CONTINUE:
+          CALL READ_FILE
           MOV AL, 3
           MOV LIFE_LEFT, AL
           MOV AL, 20
@@ -352,22 +357,17 @@ TITLE RAPIDROLL (SIMPLIFIED .EXE )
 
   GAMEOVER_SCREEN ENDP
 ;-------------------------------------------------------------------------------------------------------
-STRING_TO_INT PROC NEAR
-  
-  RET
-STRING_TO_INT ENDP
-;-------------------------------------------------------------------------------------------------------
   CONVERT PROC NEAR
-          MOV SI, OFFSET SRCRECORD_STR + 1
-          MOV CL, [SI]
-          MOV CH, 0
-          ADD SI, CX
-
+          LEA SI, SRCRECORD_STR
+          MOV AX, 0
           MOV BX, 0
           MOV BP, 1
 
           L1: 
             MOV AL, [SI]
+            CMP AL, '$'
+            JE CONTINUE5
+
             SUB AL, 48
             MOV AH, 0
             MUL BP
@@ -378,11 +378,11 @@ STRING_TO_INT ENDP
             MUL BP
             MOV BP, AX
 
-            DEC SI
+            INC SI
             LOOP L1
           
-          MOV HIGHEST_SCORE_NUM, BL
           CONTINUE5:
+            MOV HIGHEST_SCORE_NUM, BL
             RET 
   CONVERT ENDP  
 ;-------------------------------------------------------------------------------------------------------
